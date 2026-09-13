@@ -242,13 +242,13 @@ func newReviewIntegrationConsentResult(
 				Answer:     string(reviewConsentModeGranted),
 				Label:      copy.grantedLabel,
 				Effect:     copy.grantedEffect,
-				Invocation: followUpBase + " --consent " + string(reviewConsentModeGranted),
+				Invocation: reviewConsentChoiceInvocation(followUpBase, string(reviewConsentModeGranted)),
 			},
 			{
 				Answer:     string(reviewConsentModeDeclined),
 				Label:      copy.declinedLabel,
 				Effect:     copy.declinedEffect,
-				Invocation: followUpBase + " --consent " + string(reviewConsentModeDeclined),
+				Invocation: reviewConsentChoiceInvocation(followUpBase, string(reviewConsentModeDeclined)),
 			},
 		},
 		OffPath: ReviewIntegrationConsentOffPath{
@@ -279,12 +279,22 @@ func newReviewIntegrationConsentResult(
 	return result, nil
 }
 
+// reviewConsentChoiceInvocation renders the one provider-owned invocation a
+// consent choice carries: the frozen candidate-scoped follow-up command with
+// this choice's own --consent token appended. It is the only construction site
+// for that string, so the bytes the envelope builder emits, the bytes its own
+// validator re-derives, and the bytes `review consent-answer` prints can never
+// be assembled by two different expressions.
+func reviewConsentChoiceInvocation(followUpBase, answer string) string {
+	return followUpBase + " --consent " + answer
+}
+
 // validateReviewConsentInvocations compares provider-owned command bytes with
 // the same renderer that created the consent request. It never parses a command
 // supplied by a caller, so duplicate or substituted runtime flags cannot pass.
 func validateReviewConsentInvocations(result ReviewIntegrationConsentResult, followUpBase string) error {
 	for _, choice := range result.Choices {
-		expected := followUpBase + " --consent " + choice.Answer
+		expected := reviewConsentChoiceInvocation(followUpBase, choice.Answer)
 		if choice.Invocation != expected {
 			return fmt.Errorf("consent choice %q invocation does not match the provider-owned request", choice.Answer) // refusal:by-design world-action: provider-owned bytes are an internal invariant; the exit is a code fix, not a command
 		}
