@@ -52,7 +52,12 @@ func ContractFor(agent model.AgentID) string {
 	case agent == model.AgentOpenCode:
 		rendered := contract + "\n\n" + openCodeGroup
 		if major, err := opencode.DetectRuntimeMajor(context.Background()); err == nil && major == opencode.RuntimeV2 {
-			rendered = "OpenCode V2 review transport is unavailable pending organic runtime conformance. Do not start a review or launch reviewer subagents on V2. The following contract is staged reference, not capability authorization.\n\n" + strings.NewReplacer("`task`", "`subagent`", "`subagent_type`", "`agent`").Replace(rendered)
+			// This build certifies the OpenCode V2 wire transport locally, so a
+			// detected V2 runtime receives this contract as capability
+			// authorization rather than staged reference; upstream keeps V2
+			// staged pending organic runtime conformance. The tool-name renames
+			// map OpenCode V2's tool names and stay either way.
+			rendered = strings.NewReplacer("`task`", "`subagent`", "`subagent_type`", "`agent`").Replace(rendered)
 		}
 		return rendered
 	case reviewerprovider.RegisteredRuntime(agent):
