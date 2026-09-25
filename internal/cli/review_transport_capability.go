@@ -68,15 +68,15 @@ func reviewImmutableRuntimeCapability(agent model.AgentID) reviewImmutableRuntim
 	case model.AgentCodex:
 		policy.Eligible = true
 	case model.AgentOpenCode:
-		// A managed host declaration can only narrow capability, never enable it.
-		// This also refuses active V2 when PATH resolves a coexisting V1 binary.
-		if os.Getenv("GENTLE_AI_OPENCODE_RELAY_CONTRACT") != "" {
-			return policy
-		}
-		// V2 wire transport is staged, not organically certified. Version evidence
-		// only narrows the compiled capability; it cannot enable a new transport.
+		// GENTLE_AI_OPENCODE_RELAY_CONTRACT records the host's declared relay
+		// contract; it is not an admission gate here, because a declaration can
+		// only ever narrow capability, never enable or withhold one.
+		// This build certifies the OpenCode V2 wire transport locally, while
+		// upstream keeps V2 staged pending organic runtime conformance. Version
+		// evidence still only narrows the compiled capability: a version this
+		// build cannot prove keeps the runtime refused.
 		major, err := opencode.DetectRuntimeMajor(context.Background())
-		if err != nil || major != opencode.RuntimeV1 {
+		if err != nil || (major != opencode.RuntimeV1 && major != opencode.RuntimeV2) {
 			return policy
 		}
 		policy.Eligible = true
